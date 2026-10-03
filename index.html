@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GI pH Sensor Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <div class="eyebrow">GUT SENSOR PROTOTYPE</div>
+        <h1>GI pH Sensor Monitor</h1>
+        <p class="subtitle">External receiver interface for a simulated embedded feeding-tube pH sensor</p>
+      </div>
+      <div class="status"><span></span> SENSOR CONNECTED</div>
+    </header>
+
+    <section class="grid">
+      <div class="card reading-card">
+        <div class="card-label">CURRENT pH</div>
+        <div id="phValue" class="ph-value">6.80</div>
+        <div id="phState" class="state">NEUTRAL / SLIGHTLY ACIDIC</div>
+        <div class="meta">
+          <div><span>Last update</span><b id="timestamp">--:--:--</b></div>
+          <div><span>Samples</span><b id="samples">0</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Sensor Status</div>
+        <div class="status-row"><span>Connection</span><b class="green">Active</b></div>
+        <div class="status-row"><span>Data stream</span><b class="green">Receiving</b></div>
+        <div class="status-row"><span>Update rate</span><b>1 Hz</b></div>
+        <div class="status-row"><span>Mode</span><b>Simulation</b></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="card-title">pH Trend</div>
+        <canvas id="chart" width="900" height="260"></canvas>
+      </div>
+
+      <div class="card code-card">
+        <div class="card-title">Embedded Sensor Logic</div>
+        <pre><code><span class="comment">// Read pH sensor and transmit data</span>
+<span class="keyword">const int</span> PH_PIN = A0;
+
+<span class="keyword">float</span> calibrationSlope = -5.70;
+<span class="keyword">float</span> calibrationIntercept = 21.34;
+
+<span class="keyword">void</span> <span class="function">setup</span>() {
+  Serial.<span class="function">begin</span>(115200);
+}
+
+<span class="keyword">void</span> <span class="function">loop</span>() {
+  <span class="keyword">int</span> raw = <span class="function">analogRead</span>(PH_PIN);
+
+  <span class="keyword">float</span> voltage =
+    raw * 5.0 / 1023.0;
+
+  <span class="keyword">float</span> pH =
+    calibrationSlope * voltage
+    + calibrationIntercept;
+
+  Serial.<span class="function">print</span>(<span class="string">"PH="</span>);
+  Serial.<span class="function">println</span>(pH, 2);
+
+  <span class="function">delay</span>(1000);
+}</code></pre>
+      </div>
+
+      <div class="card packet-card">
+        <div class="card-title">Incoming Sensor Packet</div>
+        <div class="packet">
+          <div><span>DEVICE_ID</span><b>GUT-PH-001</b></div>
+          <div><span>PH</span><b id="packetPh">6.80</b></div>
+          <div><span>TIME</span><b id="packetTime">--:--:--</b></div>
+          <div><span>STATUS</span><b class="green">OK</b></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
