@@ -1,86 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GI pH Sensor Monitor</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alentra — Installation Monitor</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <main class="app">
-    <header>
-      <div>
-        <div class="eyebrow">GUT SENSOR PROTOTYPE</div>
-        <h1>GI pH Sensor Monitor</h1>
-        <p class="subtitle">External receiver interface for a simulated embedded feeding-tube pH sensor</p>
-      </div>
-      <div class="status"><span></span> SENSOR CONNECTED</div>
-    </header>
 
-    <section class="grid">
-      <div class="card reading-card">
-        <div class="card-label">CURRENT pH</div>
-        <div id="phValue" class="ph-value">6.80</div>
-        <div id="phState" class="state">NEUTRAL / SLIGHTLY ACIDIC</div>
-        <div class="meta">
-          <div><span>Last update</span><b id="timestamp">--:--:--</b></div>
-          <div><span>Samples</span><b id="samples">0</b></div>
+<body>
+
+<div class="app">
+
+  <header>
+    <div>
+      <div class="eyebrow">ALENTRA</div>
+      <h1>Enteral Feeding Tube Monitor</h1>
+      <p class="subtitle">Installation and sensor monitoring simulation</p>
+    </div>
+
+    <div class="status" id="systemStatus">
+      <span></span> READY
+    </div>
+  </header>
+
+
+  <div class="grid">
+
+    <!-- INSTALLATION SETUP -->
+    <section class="card">
+
+      <div class="card-title">Installation Setup</div>
+
+      <div class="installation-state">
+        <div class="state-label">CURRENT STATE</div>
+        <div class="state-value" id="installationState">
+          Ready for deployment
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Sensor Status</div>
-        <div class="status-row"><span>Connection</span><b class="green">Active</b></div>
-        <div class="status-row"><span>Data stream</span><b class="green">Receiving</b></div>
-        <div class="status-row"><span>Update rate</span><b>1 Hz</b></div>
-        <div class="status-row"><span>Mode</span><b>Simulation</b></div>
+      <div class="control-grid">
+
+        <button
+          class="control-button deploy"
+          id="deployButton">
+          Deploy
+        </button>
+
+        <button
+          class="control-button"
+          id="deflateButton"
+          disabled>
+          Deflate
+        </button>
+
+        <button
+          class="control-button emergency"
+          id="emergencyButton">
+          Emergency Stop
+        </button>
+
       </div>
 
-      <div class="card chart-card">
-        <div class="card-title">pH Trend</div>
-        <canvas id="chart" width="900" height="260"></canvas>
+
+      <div class="status-row">
+        <span>Deployment</span>
+        <b id="deploymentStatus">Standby</b>
       </div>
 
-      <div class="card code-card">
-        <div class="card-title">Embedded Sensor Logic</div>
-        <pre><code><span class="comment">// Read pH sensor and transmit data</span>
-<span class="keyword">const int</span> PH_PIN = A0;
+      <div class="status-row">
+        <span>Pressure valve</span>
+        <b id="valveStatus">Closed</b>
+      </div>
 
-<span class="keyword">float</span> calibrationSlope = -5.70;
-<span class="keyword">float</span> calibrationIntercept = 21.34;
+      <div class="status-row">
+        <span>Balloon state</span>
+        <b id="balloonStatus">Deflated</b>
+      </div>
 
-<span class="keyword">void</span> <span class="function">setup</span>() {
-  Serial.<span class="function">begin</span>(115200);
+      <div class="status-row">
+        <span>Installation</span>
+        <b id="installationStatus">Not installed</b>
+      </div>
+
+    </section>
+
+
+    <!-- PH SENSOR -->
+    <section class="card reading-card">
+
+      <div class="card-label">Current pH</div>
+
+      <div class="ph-value" id="phValue">
+        2.50
+      </div>
+
+      <div class="state" id="phState">
+        WITHIN EXPECTED GASTRIC RANGE
+      </div>
+
+      <div class="meta">
+
+        <div>
+          <span>Last reading</span>
+          <b id="timestamp">--:--:--</b>
+        </div>
+
+        <div>
+          <span>Samples</span>
+          <b id="samples">0</b>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- PRESSURE GRAPH -->
+    <section class="card chart-card">
+
+      <div class="card-title">
+        Balloon Pressure
+      </div>
+
+      <canvas
+        id="pressureChart"
+        width="1100"
+        height="260">
+      </canvas>
+
+    </section>
+
+
+    <!-- PRESSURE VALVE -->
+    <section class="card">
+
+      <div class="card-title">
+        Pressure Valve
+      </div>
+
+      <div class="status-row">
+        <span>Valve state</span>
+        <b id="pressureValve">Closed</b>
+      </div>
+
+      <div class="status-row">
+        <span>Pressure</span>
+        <b>
+          <span id="pressureValue">0.0</span> units
+        </b>
+      </div>
+
+      <div class="status-row">
+        <span>Balloon</span>
+        <b id="balloonState">Deflated</b>
+      </div>
+
+      <div class="status-row">
+        <span>Pressure change</span>
+        <b id="pressureChange">Stable</b>
+      </div>
+
+    </section>
+
+
+    <!-- INSTALLATION SIGNAL -->
+    <section class="card">
+
+      <div class="card-title">
+        Installation Signal
+      </div>
+
+      <div class="packet">
+
+        <div>
+          <span>PH_STATUS</span>
+          <b id="packetPhStatus">WAITING</b>
+        </div>
+
+        <div>
+          <span>POSITION</span>
+          <b id="packetPosition">NOT DETECTED</b>
+        </div>
+
+        <div>
+          <span>BALLOON</span>
+          <b id="packetBalloon">DEFLATED</b>
+        </div>
+
+        <div>
+          <span>PRESSURE</span>
+          <b id="packetPressure">0.0</b>
+        </div>
+
+        <div>
+          <span>SYSTEM</span>
+          <b id="packetSystem">READY</b>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ALENTRA LOGIC -->
+    <section class="card chart-card">
+
+      <div class="card-title">
+        Alentra Sensor Logic
+      </div>
+
+      <ul class="sensor-description">
+
+        <li>
+          Continuously monitors simulated pH readings
+          during the installation sequence.
+        </li>
+
+        <li>
+          Uses the expected gastric pH range of
+          <strong>1.5–3.5</strong>.
+        </li>
+
+        <li>
+          When the simulated reading enters the gastric
+          range, Alentra reports
+          <strong>Sensor Installed</strong>.
+        </li>
+
+        <li>
+          Selecting <strong>Deflate</strong> starts a
+          simulated balloon pressure decrease.
+        </li>
+
+        <li>
+          A sustained pressure drop produces the
+          <strong>Installation Complete</strong> signal.
+        </li>
+
+      </ul>
+
+
+      <pre><span class="comment">// Alentra Enteral Feeding Monitor</span>
+
+<span class="keyword">monitor</span>(pH);
+<span class="keyword">monitor</span>(pressure);
+
+<span class="keyword">if</span> (pH &gt;= 1.5 &amp;&amp; pH &lt;= 3.5) {
+  <span class="function">report</span>(<span class="string">"Sensor installed"</span>);
 }
 
-<span class="keyword">void</span> <span class="function">loop</span>() {
-  <span class="keyword">int</span> raw = <span class="function">analogRead</span>(PH_PIN);
+<span class="keyword">if</span> (pressureDropDetected) {
+  <span class="function">report</span>(<span class="string">"Installation complete"</span>);
+}</pre>
 
-  <span class="keyword">float</span> voltage =
-    raw * 5.0 / 1023.0;
-
-  <span class="keyword">float</span> pH =
-    calibrationSlope * voltage
-    + calibrationIntercept;
-
-  Serial.<span class="function">print</span>(<span class="string">"PH="</span>);
-  Serial.<span class="function">println</span>(pH, 2);
-
-  <span class="function">delay</span>(1000);
-}</code></pre>
-      </div>
-
-      <div class="card packet-card">
-        <div class="card-title">Incoming Sensor Packet</div>
-        <div class="packet">
-          <div><span>DEVICE_ID</span><b>GUT-PH-001</b></div>
-          <div><span>PH</span><b id="packetPh">6.80</b></div>
-          <div><span>TIME</span><b id="packetTime">--:--:--</b></div>
-          <div><span>STATUS</span><b class="green">OK</b></div>
-        </div>
-      </div>
     </section>
-  </main>
-  <script src="app.js"></script>
+
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+
 </body>
 </html>
