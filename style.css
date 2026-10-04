@@ -76,6 +76,16 @@ h1 {
   min-height: 220px; 
 } 
 
+.ph-chart {
+  margin-top: 24px;
+}
+
+.ph-chart canvas {
+  display: block;
+  height: 150px;
+  margin-top: 8px;
+}
+
 .card-label, 
 .card-title { 
   font-size: 12px; 

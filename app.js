@@ -24,8 +24,7 @@ const TIME_TO_DEFLATE = 1;
    gastric pH values used in the existing demo.
 */
 
-const values = [];
-
+const phHistory = [];
 
 let samples = 0;
 let currentPH = 7;
@@ -69,6 +68,12 @@ const timestamp =
 
 const samplesEl =
   document.getElementById("samples");
+
+const phCanvas =
+  document.getElementById("phChart");
+
+const phCtx =
+  phCanvas.getContext("2d");
 
 
 const systemStatus =
@@ -268,10 +273,13 @@ function setPH(ph) {
 
   currentPH = ph;
 
-  values.push(ph);
+  phHistory.push({
+    value: ph,
+    timestamp: Date.now()
+  });
 
-  if (values.length > 20) {
-    values.shift();
+  if (phHistory.length > 20) {
+    phHistory.shift();
   }
 
   const now =
@@ -290,6 +298,114 @@ function setPH(ph) {
 
   samplesEl.textContent =
     samples;
+
+  drawPHChart();
+}
+
+function drawPHChart() {
+
+  const bounds = phCanvas.getBoundingClientRect();
+  const pixelRatio = window.devicePixelRatio || 1;
+  const width = bounds.width;
+  const height = bounds.height;
+
+  if (width === 0 || height === 0) {
+    return;
+  }
+
+  const pixelWidth = Math.round(width * pixelRatio);
+  const pixelHeight = Math.round(height * pixelRatio);
+  if (phCanvas.width !== pixelWidth || phCanvas.height !== pixelHeight) {
+    phCanvas.width = pixelWidth;
+    phCanvas.height = pixelHeight;
+  }
+  phCtx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+  const plot = {
+    left: 38,
+    right: width - 12,
+    top: 12,
+    bottom: height - 30
+  };
+  const plotWidth = plot.right - plot.left;
+  const plotHeight = plot.bottom - plot.top;
+
+  phCtx.clearRect(0, 0, width, height);
+  phCtx.font = "12px system-ui";
+  phCtx.textBaseline = "middle";
+
+  [0, 7, 14].forEach((value) => {
+    const y = plot.bottom - (value / 14) * plotHeight;
+
+    phCtx.strokeStyle = "#e6eaf0";
+    phCtx.lineWidth = 1;
+    phCtx.beginPath();
+    phCtx.moveTo(plot.left, y);
+    phCtx.lineTo(plot.right, y);
+    phCtx.stroke();
+
+    phCtx.fillStyle = "#667085";
+    phCtx.textAlign = "right";
+    phCtx.fillText(String(value), plot.left - 8, y);
+  });
+
+  if (phHistory.length === 0) {
+    return;
+  }
+
+  const firstTimestamp =
+    phHistory[0].timestamp;
+  const lastTimestamp =
+    phHistory[phHistory.length - 1].timestamp;
+  const timeSpan =
+    Math.max(lastTimestamp - firstTimestamp, 1);
+
+  phCtx.strokeStyle = "#0f9f8f";
+  phCtx.lineWidth = 3;
+  phCtx.beginPath();
+
+  phHistory.forEach((reading, index) => {
+    const x = phHistory.length === 1
+      ? plot.right
+      : plot.left +
+        ((reading.timestamp - firstTimestamp) / timeSpan) *
+        plotWidth;
+    const y =
+      plot.bottom -
+      (Math.max(0, Math.min(14, reading.value)) / 14) * plotHeight;
+
+    if (index === 0) {
+      phCtx.moveTo(x, y);
+    } else {
+      phCtx.lineTo(x, y);
+    }
+  });
+
+  phCtx.stroke();
+
+  const latest = phHistory[phHistory.length - 1];
+  const latestX = phHistory.length === 1
+    ? plot.right
+    : plot.left +
+      ((latest.timestamp - firstTimestamp) / timeSpan) *
+      plotWidth;
+  const latestY =
+    plot.bottom -
+    (Math.max(0, Math.min(14, latest.value)) / 14) * plotHeight;
+
+  phCtx.fillStyle = "#0f9f8f";
+  phCtx.beginPath();
+  phCtx.arc(latestX, latestY, 4, 0, Math.PI * 2);
+  phCtx.fill();
+
+  const ageSeconds =
+    Math.max(0, Math.round((Date.now() - firstTimestamp) / 1000));
+  phCtx.fillStyle = "#667085";
+  phCtx.textBaseline = "top";
+  phCtx.textAlign = "left";
+  phCtx.fillText(`${ageSeconds}s ago`, plot.left, plot.bottom + 8);
+  phCtx.textAlign = "right";
+  phCtx.fillText("Now", plot.right, plot.bottom + 8);
 }
 
 
@@ -826,9 +942,8 @@ setInterval(() => {
 /* INITIAL STATE                  */
 /* ============================= */
 
-setPH(
-  values[values.length - 1]
-);
+setPH(currentPH);
+window.addEventListener("resize", drawPHChart);
 
 updatePressureUI();
 
