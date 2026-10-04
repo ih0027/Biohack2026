@@ -12,7 +12,11 @@
 /* ============================= */
 
 const MIN_PH = 1.5;
-const MAX_PH = 3.5;
+const MAX_PH = 5.5;
+
+const TIME_TO_INFLATE = 0.5;
+const TIME_TO_TRAVEL = 10;
+const TIME_TO_DEFLATE = 1;
 
 
 /*
@@ -20,14 +24,11 @@ const MAX_PH = 3.5;
    gastric pH values used in the existing demo.
 */
 
-const values = [
-  2.42, 2.51, 2.48, 2.57,
-  2.61, 2.55, 2.63, 2.58,
-  2.52, 2.47, 2.54, 2.50
-];
+const values = [];
 
 
 let samples = 0;
+let currentPH = 7;
 
 
 /* ============================= */
@@ -41,6 +42,16 @@ let pressure = 0;
 let pressureHistory = [0];
 
 let travelIndex = 0;
+
+let inStomach = false;
+
+let pH = 7.0;
+
+let ipH = 0;
+
+let iPressure = 0;
+
+let startPressure = 0;
 
 
 /* ============================= */
@@ -111,9 +122,6 @@ const packetSystem =
 const deployButton =
   document.getElementById("deployButton");
 
-const deflateButton =
-  document.getElementById("deflateButton");
-
 const emergencyButton =
   document.getElementById("emergencyButton");
 
@@ -154,6 +162,89 @@ function setSystemStatus(text, active = false) {
   }
 }
 
+/** Adds a random amount of noise between max and min to n */
+function addNoise(n, max, min){
+  return n+Math.random() * (max - min) + min;
+}
+
+function addSmoothNoise(n, lastn, max, min, maxStep){
+  let t=n+Math.random() * (max - min) + min;
+  if(t-lastn>maxStep){
+    return lastn+maxStep;
+  } else if(t-lastn < -maxStep){
+    return lastn-maxStep;
+  }
+  return t;
+}
+
+function addPressure(p){
+  pressureHistory.push(p);
+  if (pressureHistory.length > 30){
+    pressureHistory.shift();
+  }
+}
+
+/** The main function to simulate recieving data */
+function simulateEntry(){
+  if (phase == "deploying"){
+    if(iPressure < 10*TIME_TO_INFLATE){
+      pressure = pressure + (1.5/(10*TIME_TO_INFLATE));
+      pressure = addNoise(pressure, -0.05,0.05);
+      addPressure(pressure);
+    }else if(iPressure < 10*(TIME_TO_INFLATE+TIME_TO_TRAVEL)){
+      pressure = addSmoothNoise(1.5,pressure,-0.25,0.25,0.05)
+      addPressure(pressure);
+    }else if(iPressure < 10 *(TIME_TO_INFLATE+TIME_TO_TRAVEL+0.5)){
+      inStomach = true;
+      pH =4.0;
+      pressure = pressure+(1.5/(10*TIME_TO_INFLATE));
+      pressure = addNoise(pressure, -0.05,0.05);
+      addPressure(pressure);
+    } else {
+      phase = "DEFLATING";
+      iPressure = 0;
+    }
+    iPressure = iPressure+1;
+  } else if (phase == "DEFLATING"){
+    if(iPressure == 1){
+      startPressure = pressure;
+    }
+    if(pressure > 0){
+      pressure = pressure - (startPressure/(10*TIME_TO_DEFLATE));
+      pressure = addNoise(pressure, -0.05,0.05);
+      if(pressure < 0){
+        pressure = 0;
+      }
+      addPressure(pressure);
+    } else {
+      phase = "";INSTALLED
+    }
+    iPressure=iPressure+1;
+  } else if (phase == "stopped"){
+    if(pressure > 0){
+      pressure = pressure - (2.0/(10*TIME_TO_DEFLATE));
+      pressure = addNoise(pressure, -0.05,0.05);
+      if(pressure < 0){
+        pressure = 0;
+      }
+      addPressure(pressure);
+    }
+  } else {
+    if (pressure == 0){
+      addPressure(0);
+    }
+  }
+  if (ipH == 9){
+    setPH(readPH());
+  }
+  ipH = (ipH+1)%10;
+
+  updatePressureUI();
+  updatePacket();
+  drawPressureChart();
+}
+
+const simulateId = setInterval(simulateEntry, 100);
 
 /* ============================= */
 /* PH LOGIC                      */
@@ -174,6 +265,8 @@ function stateForPH(ph) {
 
 
 function setPH(ph) {
+
+  currentPH = ph;
 
   values.push(ph);
 
@@ -197,6 +290,17 @@ function setPH(ph) {
 
   samplesEl.textContent =
     samples;
+}
+
+
+function readPH() {
+  if (!inStomach){
+    pH = addSmoothNoise(7.0,pH,0.5,-.5,.25);
+    return pH;
+  } else {
+    pH = addSmoothNoise(3.0,pH,0.25,-.25,.25);
+    return pH;
+  }
 }
 
 
@@ -354,7 +458,7 @@ function drawPressureChart() {
 
 
   const min = 0;
-  const max = 10;
+  const max = 4;
 
 
   /*
@@ -394,7 +498,7 @@ function drawPressureChart() {
     "12px system-ui";
 
 
-  [10, 8, 6, 4, 2, 0]
+  [4, 3.2, 2.4, 1.6, 0.8, 0]
     .forEach((v, i) => {
 
       const y =
@@ -506,8 +610,6 @@ function startDeployment() {
   deployButton.disabled =
     true;
 
-  deflateButton.disabled =
-    true;
 
 
   setSystemStatus(
@@ -516,134 +618,6 @@ function startDeployment() {
   );
 
   updatePacket();
-}
-
-
-/* ============================= */
-/* SIMULATED TRAVEL + PH         */
-/* ============================= */
-
-function simulateTravel() {
-
-  if (phase !== "deploying") {
-    return;
-  }
-
-
-  /*
-     Simulated readings as the tube
-     progresses through the demonstration.
-
-     The final readings enter the
-     expected gastric range.
-  */
-
-  const travelValues = [
-
-    5.9,
-    5.4,
-    5.0,
-    4.7,
-    4.3,
-    4.0,
-    3.8,
-    3.6,
-    3.4,
-    3.1,
-    2.8,
-    2.6,
-    2.5
-
-  ];
-
-
-  const ph =
-    travelValues[
-      Math.min(
-        travelIndex,
-        travelValues.length - 1
-      )
-    ];
-
-
-  travelIndex++;
-
-
-  /*
-     Update pH display.
-  */
-
-  setPH(ph);
-
-
-  /*
-     Simulated pressure increase.
-  */
-
-  pressure += 0.8;
-
-  pressure =
-    Math.min(
-      pressure,
-      8
-    );
-
-
-  pressureHistory.push(
-    pressure
-  );
-
-
-  if (
-    pressureHistory.length > 30
-  ) {
-    pressureHistory.shift();
-  }
-
-
-  /*
-     Gastric pH detected.
-  */
-
-  if (
-    ph >= MIN_PH &&
-    ph <= MAX_PH
-  ) {
-
-    phase = "installed";
-
-
-    installationState.textContent =
-      "Sensor installed — gastric pH detected";
-
-    installationStatus.textContent =
-      "Sensor installed";
-
-    deploymentStatus.textContent =
-      "Complete";
-
-    valveStatus.textContent =
-      "Closed";
-
-    pressureValve.textContent =
-      "Closed";
-
-
-    deflateButton.disabled =
-      false;
-
-
-    setSystemStatus(
-      "SENSOR INSTALLED"
-    );
-  }
-
-
-  updatePressureUI();
-
-  updatePacket();
-
-  drawPressureChart();
 }
 
 
@@ -661,8 +635,6 @@ function startDeflation() {
   phase = "deflating";
 
 
-  deflateButton.disabled =
-    true;
 
 
   installationState.textContent =
@@ -804,9 +776,6 @@ function emergencyStop() {
   deployButton.disabled =
     false;
 
-  deflateButton.disabled =
-    true;
-
 
   setSystemStatus(
     "EMERGENCY STOP",
@@ -827,10 +796,6 @@ deployButton.addEventListener(
   startDeployment
 );
 
-deflateButton.addEventListener(
-  "click",
-  startDeflation
-);
 
 emergencyButton.addEventListener(
   "click",
@@ -841,11 +806,13 @@ emergencyButton.addEventListener(
 /* ============================= */
 /* SIMULATION CLOCK               */
 /* ============================= */
-
+/*
 setInterval(() => {
 
   if (phase === "deploying") {
     simulateTravel();
+  } else {
+    setPH(readPH());
   }
 
   if (phase === "deflating") {
@@ -853,7 +820,7 @@ setInterval(() => {
   }
 
 }, 900);
-
+*/
 
 /* ============================= */
 /* INITIAL STATE                  */

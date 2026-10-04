@@ -47,13 +47,6 @@
         </button>
 
         <button
-          class="control-button"
-          id="deflateButton"
-          disabled>
-          Deflate
-        </button>
-
-        <button
           class="control-button emergency"
           id="emergencyButton">
           Emergency Stop
@@ -91,7 +84,7 @@
       <div class="card-label">Current pH</div>
 
       <div class="ph-value" id="phValue">
-        2.50
+        7.0
       </div>
 
       <div class="state" id="phState">
@@ -146,7 +139,7 @@
       <div class="status-row">
         <span>Pressure</span>
         <b>
-          <span id="pressureValue">0.0</span> units
+          <span id="pressureValue">0.0</span> kPa
         </b>
       </div>
 
@@ -202,57 +195,7 @@
     </section>
 
 
-    <!-- ALENTRA LOGIC -->
-    <section class="card chart-card">
-
-      <div class="card-title">
-        Alentra Sensor Logic
-      </div>
-
-      <ul class="sensor-description">
-
-        <li>
-          Continuously monitors simulated pH readings
-          during the installation sequence.
-        </li>
-
-        <li>
-          Uses the expected gastric pH range of
-          <strong>1.5–3.5</strong>.
-        </li>
-
-        <li>
-          When the simulated reading enters the gastric
-          range, Alentra reports
-          <strong>Sensor Installed</strong>.
-        </li>
-
-        <li>
-          Selecting <strong>Deflate</strong> starts a
-          simulated balloon pressure decrease.
-        </li>
-
-        <li>
-          A sustained pressure drop produces the
-          <strong>Installation Complete</strong> signal.
-        </li>
-
-      </ul>
-
-
-      <pre><span class="comment">// Alentra Enteral Feeding Monitor</span>
-
-<span class="keyword">monitor</span>(pH);
-<span class="keyword">monitor</span>(pressure);
-
-<span class="keyword">if</span> (pH &gt;= 1.5 &amp;&amp; pH &lt;= 3.5) {
-  <span class="function">report</span>(<span class="string">"Sensor installed"</span>);
-}
-
-<span class="keyword">if</span> (pressureDropDetected) {
-  <span class="function">report</span>(<span class="string">"Installation complete"</span>);
-}</pre>
-
+    
     </section>
 
   </div>
