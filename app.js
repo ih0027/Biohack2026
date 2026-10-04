@@ -207,6 +207,7 @@ function simulateEntry(){
       addPressure(pressure);
     } else {
       phase = "DEFLATING";
+      installationState.textContent = "Deflating";
       iPressure = 0;
     }
     iPressure = iPressure+1;
@@ -222,7 +223,8 @@ function simulateEntry(){
       }
       addPressure(pressure);
     } else {
-      phase = "";INSTALLED
+      phase = "INSTALLED";
+      installationState.textContent = "Installation Complete";
     }
     iPressure=iPressure+1;
   } else if (phase == "stopped"){
@@ -720,7 +722,7 @@ function startDeployment() {
     "Searching";
 
   installationState.textContent =
-    "Deploying — monitoring pH";
+    "Deploying";
 
 
   deployButton.disabled =
@@ -754,7 +756,7 @@ function startDeflation() {
 
 
   installationState.textContent =
-    "Deflating — monitoring pressure";
+    "Deflating";
 
   installationStatus.textContent =
     "Deflating";
