@@ -194,7 +194,7 @@ function simulateEntry(){
   if (phase == "deploying"){
     if(iPressure < 10*TIME_TO_INFLATE){
       pressure = pressure + (1.5/(10*TIME_TO_INFLATE));
-      pressure = addNoise(pressure, -0.05,0.05);
+      pressure = addNoise(pressure, -0.15,0.15);
       addPressure(pressure);
     }else if(iPressure < 10*(TIME_TO_INFLATE+TIME_TO_TRAVEL)){
       pressure = addSmoothNoise(1.5,pressure,-0.25,0.25,0.05)
@@ -203,7 +203,7 @@ function simulateEntry(){
       inStomach = true;
       pH =4.0;
       pressure = pressure+(1.5/(10*TIME_TO_INFLATE));
-      pressure = addNoise(pressure, -0.05,0.05);
+      pressure = addNoise(pressure, -0.15,0.15);
       addPressure(pressure);
     } else {
       phase = "DEFLATING";
@@ -883,7 +883,7 @@ function emergencyStop() {
     "Paused";
 
   installationState.textContent =
-    "Emergency stop — simulation paused";
+    "Emergency stop";
 
   pressureChange.textContent =
     "Stopped";
